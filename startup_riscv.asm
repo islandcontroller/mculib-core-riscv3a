@@ -91,3 +91,4 @@ __app_main_enter:
   jal   ra,   main                    /* Call main() with return address      */
 __app_main_exit:
   j     __app_main_exit               /* Endless loop                         */
+
