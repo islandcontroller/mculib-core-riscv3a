@@ -61,6 +61,12 @@ typedef enum {RESET = 0, SET = !RESET} FlagStatus, ITStatus;
 #define   RV_STATIC_INLINE  static  inline
 #define   RV_STATIC_FORCE_INLINE RV_STATIC_INLINE __attribute__((always_inline))
 
+#ifdef USE_WCH_INTERRUPT_FAST_ATTR
+#define RV_INTERRUPT __attribute__((interrupt("WCH-Interrupt-fast")))
+#else
+#define RV_INTERRUPT __attribute__((interrupt))
+#endif /* USE_WCH_INTERRUPT_FAST_ATTR */
+
 /* memory mapped structure for Program Fast Interrupt Controller (PFIC) */
 typedef struct{
   __I  uint32_t ISR[8];
