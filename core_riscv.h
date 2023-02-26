@@ -570,6 +570,17 @@ RV_STATIC_FORCE_INLINE void __WFE(void)
   __asm volatile ("wfi");
 }
 
+/*!****************************************************************************
+ * @brief
+ * Signal Debugger Break (EBREAK)
+ *
+ * @date  26.02.2023
+ ******************************************************************************/
+RV_STATIC_FORCE_INLINE void __EBREAK(void)
+{
+  __asm volatile ("ebreak");
+}
+
 
 /* ###################### Machine Register Access ########################### */
 #define TEMPLATE_CSR_GETTER_FN(fname, csr)                                     \
