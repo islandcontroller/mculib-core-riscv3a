@@ -17,6 +17,10 @@
 #define __CORE_RISCV_H__
 
 /* ############################### Common ################################### */
+/* Core version identifier: V3A                                               */
+#define __RISC_V                      0x301U
+#define __RISC_V3A                    1U
+
 /* Volatile/Const Access flag definitions                                     */
 #ifdef __cplusplus
   #define __I                         volatile
@@ -26,10 +30,11 @@
 #define __O                           volatile
 #define __IO                          volatile
 
-#define   RV_STATIC_INLINE  static  inline
-#define   RV_STATIC_FORCE_INLINE RV_STATIC_INLINE __attribute__((always_inline))
+/* Hint attributes for inlining functions                                     */
+#define RV_STATIC_INLINE              static inline
+#define RV_STATIC_FORCE_INLINE        RV_STATIC_INLINE __attribute__((always_inline))
 
-/* Hint-Attributes for Hardware Prologue/Epilogue usage                       */
+/* Hint attributes for Hardware Prologue/Epilogue usage                       */
 #ifdef USE_WCH_INTERRUPT_FAST_ATTR
 #define RV_INTERRUPT __attribute__((interrupt("WCH-Interrupt-fast")))
 #elif defined(USE_INTERRUPT_NAKED_ATTR)
@@ -76,7 +81,8 @@ typedef enum {ERROR = 0, SUCCESS = !ERROR} ErrorStatus;
 typedef enum {DISABLE = 0, ENABLE = !DISABLE} FunctionalState;
 typedef enum {RESET = 0, SET = !RESET} FlagStatus, ITStatus;
 
-/* Peripheral Base Address definitions                                        */
+
+/* Core Peripheral Base Address definitions                                   */
 #define PFIC_BASE                     0xE000E000UL
 #define SysTick_BASE                  0xE000F000UL
 
@@ -520,7 +526,7 @@ RV_STATIC_FORCE_INLINE void SysTick_SetCompare(uint64_t value)
  *
  * @date  30.04.2020
  ******************************************************************************/
-RV_STATIC_INLINE void __NOP()
+RV_STATIC_FORCE_INLINE void __NOP()
 {
   __asm volatile ("nop");
 }
@@ -531,7 +537,7 @@ RV_STATIC_INLINE void __NOP()
  *
  * @date  26.02.2023
  ******************************************************************************/
-RV_STATIC_INLINE void __SEV()
+RV_STATIC_FORCE_INLINE void __SEV()
 {
   PFIC->SCTLR |= PFIC_SCTLR_SETEVENT;
 }
@@ -566,532 +572,83 @@ RV_STATIC_FORCE_INLINE void __WFE(void)
 
 
 /* ###################### Machine Register Access ########################### */
-/*********************************************************************
- * @fn      __get_FFLAGS
+#define TEMPLATE_CSR_GETTER_FN(fname, csr)                                     \
+/*!****************************************************************************
+ * @brief
+ * CSR Getter Function Template: uint32_t fname(void)
  *
- * @brief   Return the Floating-Point Accrued Exceptions
+ * @param[in] fname       (Template symbol) Function name
+ * @param[in] csr         (Template string literal) CSR name
+ * @return  (uint32_t)  CSR value
+ * @date  26.02.2023
+ *****************************************************************************/\
+  uint32_t fname(void)                                                         \
+  {                                                                            \
+    uint32_t result;                                                           \
+    __asm volatile ("csrr %0, " csr : "=r"(result));                           \
+    return result;                                                             \
+  }
+#define TEMPLATE_CSR_SETTER_FN(fname, csr)                                     \
+/*!****************************************************************************
+ * @brief
+ * CSR Setter Function Template: void fname(value)
  *
- * @return  fflags value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_FFLAGS(void)
-{
-    uint32_t result;
+ * @param[in] fname       (Template symbol) Function name
+ * @param[in] csr         (Template string literal) CSR name
+ * @param[in] value       CSR value
+ * @date  26.02.2023
+ *****************************************************************************/\
+  void fname(uint32_t value)                                                   \
+  {                                                                            \
+    __asm volatile ("csrw " csr ", %0" :: "r"(value));                         \
+  }
 
-    __asm volatile("csrr %0, ""fflags": "=r"(result));
-    return (result);
-}
+/* CSR Getter and Setter template instantiations                              */
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MSTATUS,    "mstatus");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_SETTER_FN(__set_MSTATUS,    "mstatus");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MISA,       "misa");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MIE,        "mie");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_SETTER_FN(__set_MIE,        "mie");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MTVEC,      "mtvec");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_SETTER_FN(__set_MTVEC,      "mtvec");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MSCRATCH,   "mscratch");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_SETTER_FN(__set_MSCRATCH,   "mscratch");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MEPC,       "mepc");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_SETTER_FN(__set_MEPC,       "mepc");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MCAUSE,     "mcause");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_SETTER_FN(__set_MCAUSE,     "mcause");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MTVAL,      "mtval");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_SETTER_FN(__set_MTVAL,      "mtval");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MIP,        "mip");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_SETTER_FN(__set_MIP,        "mip");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MCYCLE,     "mcycle");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_SETTER_FN(__set_MCYCLE,     "mcycle");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MCYCLEH,    "mcycleh");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_SETTER_FN(__set_MCYCLEH,    "mcycleh");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MINSTRET,   "minstret");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_SETTER_FN(__set_MINSTRET,   "minstret");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MINSTRETH,  "minstreth");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_SETTER_FN(__set_MINSTRETH,  "minstreth");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MVENDORID,  "mvendorid");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MARCHID,    "marchid");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MIMPID,     "mimpid");
+RV_STATIC_FORCE_INLINE TEMPLATE_CSR_GETTER_FN(__get_MHARTID,    "mhartid");
 
-/*********************************************************************
- * @fn      __set_FFLAGS
- *
- * @brief   Set the Floating-Point Accrued Exceptions
- *
- * @param   value  - set FFLAGS value
- *
- * @return  none
- */
-RV_STATIC_FORCE_INLINE void __set_FFLAGS(uint32_t value)
-{
-    __asm volatile("csrw fflags, %0":: "r"(value));
-}
 
-/*********************************************************************
- * @fn      __get_FRM
- *
- * @brief   Return the Floating-Point Dynamic Rounding Mode
- *
- * @return  frm value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_FRM(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0,""frm": "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __set_FRM
- *
- * @brief   Set the Floating-Point Dynamic Rounding Mode
- *
- * @param   value  - set frm value
- *
- * @return  none
- */
-RV_STATIC_FORCE_INLINE void __set_FRM(uint32_t value)
-{
-    __asm volatile("csrw frm, %0" :: "r"(value));
-}
-
-/*********************************************************************
- * @fn      __get_FCSR
- *
- * @brief   Return the Floating-Point Control and Status Register
- *
- * @return  fcsr value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_FCSR(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0," "fcsr" : "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __set_FCSR
- *
- * @brief   Set the Floating-Point Dynamic Rounding Mode
- *
- * @param   value  - set fcsr value
- *
- * @return  none
- */
-RV_STATIC_FORCE_INLINE void __set_FCSR(uint32_t value)
-{
-    __asm volatile("csrw fcsr, %0" : : "r"(value));
-}
-
-/*********************************************************************
- * @fn      __get_MSTATUS
- *
- * @brief   Return the Machine Status Register
- *
- * @return  mstatus value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MSTATUS(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0," "mstatus": "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __set_MSTATUS
- *
- * @brief   Set the Machine Status Register
- *
- * @param   value  - set mstatus value
- *
- * @return  none
- */
-RV_STATIC_FORCE_INLINE void __set_MSTATUS(uint32_t value)
-{
-    __asm volatile("csrw mstatus, %0" : : "r"(value));
-}
-
-/*********************************************************************
- * @fn      __get_MISA
- *
- * @brief   Return the Machine ISA Register
- *
- * @return  misa value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MISA(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0,""misa" : "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __set_MISA
- *
- * @brief   Set the Machine ISA Register
- *
- * @param   value  - set misa value
- *
- * @return  none
- */
-RV_STATIC_FORCE_INLINE void __set_MISA(uint32_t value)
-{
-    __asm volatile("csrw misa, %0" : : "r"(value));
-}
-
-/*********************************************************************
- * @fn      __get_MIE
- *
- * @brief   Return the Machine Interrupt Enable Register
- *
- * @return  mie value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MIE(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0," "mie": "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __set_MISA
- *
- * @brief   Set the Machine ISA Register
- *
- * @param   value  - set mie value
- *
- * @return  none
- */
-RV_STATIC_FORCE_INLINE void __set_MIE(uint32_t value)
-{
-    __asm volatile("csrw mie, %0": : "r"(value));
-}
-
-/*********************************************************************
- * @fn      __get_MTVEC
- *
- * @brief   Return the Machine Trap-Vector Base-Address Register
- *
- * @return  mtvec value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MTVEC(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0," "mtvec": "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __set_MTVEC
- *
- * @brief   Set the Machine Trap-Vector Base-Address Register
- *
- * @param   value  - set mtvec value
- *
- * @return  none
- */
-RV_STATIC_FORCE_INLINE void __set_MTVEC(uint32_t value)
-{
-    __asm volatile("csrw mtvec, %0":: "r"(value));
-}
-
-/*********************************************************************
- * @fn      __get_MTVEC
- *
- * @brief   Return the Machine Seratch Register
- *
- * @return  mscratch value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MSCRATCH(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0," "mscratch" : "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __set_MTVEC
- *
- * @brief   Set the Machine Seratch Register
- *
- * @param   value  - set mscratch value
- *
- * @return  none
- */
-RV_STATIC_FORCE_INLINE void __set_MSCRATCH(uint32_t value)
-{
-    __asm volatile("csrw mscratch, %0" : : "r"(value));
-}
-
-/*********************************************************************
- * @fn      __get_MEPC
- *
- * @brief   Return the Machine Exception Program Register
- *
- * @return  mepc value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MEPC(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0," "mepc" : "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __set_MEPC
- *
- * @brief   Set the Machine Exception Program Register
- *
- * @return  mepc value
- */
-RV_STATIC_FORCE_INLINE void __set_MEPC(uint32_t value)
-{
-    __asm volatile("csrw mepc, %0" : : "r"(value));
-}
-
-/*********************************************************************
- * @fn      __get_MCAUSE
- *
- * @brief   Return the Machine Cause Register
- *
- * @return  mcause value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MCAUSE(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0," "mcause": "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __set_MEPC
- *
- * @brief   Set the Machine Cause Register
- *
- * @return  mcause value
- */
-RV_STATIC_FORCE_INLINE void __set_MCAUSE(uint32_t value)
-{
-    __asm volatile("csrw mcause, %0":: "r"(value));
-}
-
-/*********************************************************************
- * @fn      __get_MTVAL
- *
- * @brief   Return the Machine Trap Value Register
- *
- * @return  mtval value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MTVAL(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0," "mtval" : "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __set_MTVAL
- *
- * @brief   Set the Machine Trap Value Register
- *
- * @return  mtval value
- */
-RV_STATIC_FORCE_INLINE void __set_MTVAL(uint32_t value)
-{
-    __asm volatile("csrw mtval, %0":: "r"(value));
-}
-
-/*********************************************************************
- * @fn      __get_MIP
- *
- * @brief   Return the Machine Interrupt Pending Register
- *
- * @return  mip value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MIP(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0," "mip": "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __set_MIP
- *
- * @brief   Set the Machine Interrupt Pending Register
- *
- * @return  mip value
- */
-RV_STATIC_FORCE_INLINE void __set_MIP(uint32_t value)
-{
-    __asm volatile("csrw mip, %0":: "r"(value));
-}
-
-/*********************************************************************
- * @fn      __get_MCYCLE
- *
- * @brief   Return Lower 32 bits of Cycle counter
- *
- * @return  mcycle value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MCYCLE(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0," "mcycle": "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __set_MCYCLE
- *
- * @brief   Set Lower 32 bits of Cycle counter
- *
- * @return  mcycle value
- */
-RV_STATIC_FORCE_INLINE void __set_MCYCLE(uint32_t value)
-{
-    __asm volatile("csrw mcycle, %0" : : "r"(value));
-}
-
-/*********************************************************************
- * @fn      __get_MCYCLEH
- *
- * @brief   Return Upper 32 bits of Cycle counter
- *
- * @return  mcycleh value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MCYCLEH(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0,""mcycleh" : "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __set_MCYCLEH
- *
- * @brief   Set Upper 32 bits of Cycle counter
- *
- * @return  mcycleh value
- */
-RV_STATIC_FORCE_INLINE void __set_MCYCLEH(uint32_t value)
-{
-    __asm volatile("csrw mcycleh, %0":: "r"(value));
-}
-
-/*********************************************************************
- * @fn      __get_MINSTRET
- *
- * @brief   Return Lower 32 bits of Instructions-retired counter
- *
- * @return  mcause value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MINSTRET(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0,""minstret": "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __set_MINSTRET
- *
- * @brief   Set Lower 32 bits of Instructions-retired counter
- *
- * @return  minstret value
- */
-RV_STATIC_FORCE_INLINE void __set_MINSTRET(uint32_t value)
-{
-    __asm volatile("csrw minstret, %0":: "r"(value));
-}
-
-/*********************************************************************
- * @fn      __get_MINSTRETH
- *
- * @brief   Return Upper 32 bits of Instructions-retired counter
- *
- * @return  minstreth value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MINSTRETH(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0,""minstreth": "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __set_MINSTRETH
- *
- * @brief   Set Upper 32 bits of Instructions-retired counter
- *
- * @return  minstreth value
- */
-RV_STATIC_FORCE_INLINE void __set_MINSTRETH(uint32_t value)
-{
-    __asm volatile("csrw minstreth, %0":: "r"(value));
-}
-
-/*********************************************************************
- * @fn      __get_MVENDORID
- *
- * @brief   Return Vendor ID Register
- *
- * @return  mvendorid value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MVENDORID(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0,""mvendorid": "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __get_MARCHID
- *
- * @brief   Return Machine Architecture ID Register
- *
- * @return  marchid value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MARCHID(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0,""marchid": "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __get_MIMPID
- *
- * @brief   Return Machine Implementation ID Register
- *
- * @return  mimpid value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MIMPID(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0,""mimpid": "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __get_MHARTID
- *
- * @brief   Return Hart ID Register
- *
- * @return  mhartid value
- */
-RV_STATIC_FORCE_INLINE uint32_t __get_MHARTID(void)
-{
-    uint32_t result;
-
-    __asm volatile("csrr %0,""mhartid": "=r"(result));
-    return (result);
-}
-
-/*********************************************************************
- * @fn      __get_SP
- *
- * @brief   Return SP Register
- *
- * @return  SP value
- */
+/* ############################## Other ##################################### */
+/*!****************************************************************************
+ * @brief
+ * Get Stack Pointer value
+ *
+ * @return  (uint32_t)  SP register value
+ * @date  30.04.2020
+ * @date  26.02.2023
+ ******************************************************************************/
 RV_STATIC_FORCE_INLINE uint32_t __get_SP(void)
 {
-    uint32_t result;
-
-    asm volatile("mv %0,""sp": "=r"(result):);
-    return (result);
+  uint32_t result;
+  __asm volatile ("mv %0, sp" : "=r"(result));
+  return result;
 }
 
 #endif /* __CORE_RISCV_H__ */
-
-
-
-
-
