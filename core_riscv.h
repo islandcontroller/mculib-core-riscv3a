@@ -651,4 +651,30 @@ RV_STATIC_FORCE_INLINE uint32_t __get_SP(void)
   return result;
 }
 
+/*!****************************************************************************
+ * @brief
+ * Disable machine interrupts
+ *
+ * Clears MIE bit in mstatus register
+ *
+ * @date  26.02.2023
+ ******************************************************************************/
+RV_STATIC_FORCE_INLINE void __disable_irq(void)
+{
+  __asm volatile ("csrci mstatus, 0x08" ::: "memory");
+}
+
+/*!****************************************************************************
+ * @brief
+ * Enable machine interrupts
+ *
+ * Sets MIE bit in mstatus register
+ *
+ * @date  26.02.2023
+ ******************************************************************************/
+RV_STATIC_FORCE_INLINE void __enable_irq(void)
+{
+  __asm volatile ("csrsi mstatus, 0x08" ::: "memory");
+}
+
 #endif /* __CORE_RISCV_H__ */
