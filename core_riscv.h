@@ -1,25 +1,44 @@
-/********************************** (C) COPYRIGHT  *******************************
- * File Name          : core_riscv.h
- * Author             : WCH
- * Version            : V1.0.0
- * Date               : 2020/04/30
- * Description        : RISC-V Core Peripheral Access Layer Header File
+/*!****************************************************************************
+ * @file
+ * core_riscv.h
+ *
+ * @brief
+ * RISC-V3A Core Peripheral Access
+ *
+ * @date  30.04.2020
+ * @date  26.02.2023
+ ******************************************************************************/
+/******************************************************************************
  * Copyright (c) 2021 Nanjing Qinheng Microelectronics Co., Ltd.
  * SPDX-License-Identifier: Apache-2.0
- *******************************************************************************/
+ ******************************************************************************/
+
 #ifndef __CORE_RISCV_H__
 #define __CORE_RISCV_H__
 
-/* IO definitions */
+/* ############################### Common ################################### */
+/* Volatile/Const Access flag definitions                                     */
 #ifdef __cplusplus
-  #define     __I     volatile                /*!< defines 'read only' permissions      */
+  #define __I                         volatile
 #else
-  #define     __I     volatile const          /*!< defines 'read only' permissions     */
+  #define __I                         volatile const
 #endif
-#define     __O     volatile                  /*!< defines 'write only' permissions     */
-#define     __IO    volatile                  /*!< defines 'read / write' permissions   */
+#define __O                           volatile
+#define __IO                          volatile
 
-/* Standard Peripheral Library old types (maintained for legacy purpose) */
+#define   RV_STATIC_INLINE  static  inline
+#define   RV_STATIC_FORCE_INLINE RV_STATIC_INLINE __attribute__((always_inline))
+
+/* Hint-Attributes for Hardware Prologue/Epilogue usage                       */
+#ifdef USE_WCH_INTERRUPT_FAST_ATTR
+#define RV_INTERRUPT __attribute__((interrupt("WCH-Interrupt-fast")))
+#elif defined(USE_INTERRUPT_NAKED_ATTR)
+#define RV_INTERRUPT __attribute__((naked))
+#else
+#define RV_INTERRUPT __attribute__((interrupt))
+#endif /* USE_WCH_INTERRUPT_FAST_ATTR || USE_INTERRUPT_NAKED_ATTR */
+
+/* Legacy support integer type definitions                                    */
 typedef __I uint32_t vuc32;  /* Read Only */
 typedef __I uint16_t vuc16;  /* Read Only */
 typedef __I uint8_t vuc8;   /* Read Only */
@@ -52,48 +71,249 @@ typedef int32_t  s32;
 typedef int16_t s16;
 typedef int8_t  s8;
 
+/* Error, function and status flag definitions                                */
 typedef enum {ERROR = 0, SUCCESS = !ERROR} ErrorStatus;
-
 typedef enum {DISABLE = 0, ENABLE = !DISABLE} FunctionalState;
-
 typedef enum {RESET = 0, SET = !RESET} FlagStatus, ITStatus;
 
-#define   RV_STATIC_INLINE  static  inline
-#define   RV_STATIC_FORCE_INLINE RV_STATIC_INLINE __attribute__((always_inline))
+/* Peripheral Base Address definitions                                        */
+#define PFIC_BASE                     0xE000E000UL
+#define SysTick_BASE                  0xE000F000UL
 
-#ifdef USE_WCH_INTERRUPT_FAST_ATTR
-#define RV_INTERRUPT __attribute__((interrupt("WCH-Interrupt-fast")))
-#else
-#define RV_INTERRUPT __attribute__((interrupt))
-#endif /* USE_WCH_INTERRUPT_FAST_ATTR */
 
-/* memory mapped structure for Program Fast Interrupt Controller (PFIC) */
-typedef struct{
+/* ################ Programmable Fast Interrupt Controller ################## */
+/* Memory-Mapped PFIC Register File                                           */
+typedef struct {
   __I  uint32_t ISR[8];
   __I  uint32_t IPR[8];
   __IO uint32_t ITHRESDR;
   __IO uint32_t FIBADDRR;
   __IO uint32_t CFGR;
   __I  uint32_t GISR;
-  uint8_t RESERVED0[0x10];
+       uint8_t  RESERVED0[0x10];
   __IO uint32_t FIOFADDRR[4];
-  uint8_t RESERVED1[0x90];
+       uint8_t  RESERVED1[0x90];
   __O  uint32_t IENR[8];
-  uint8_t RESERVED2[0x60];
+       uint8_t  RESERVED2[0x60];
   __O  uint32_t IRER[8];
-  uint8_t RESERVED3[0x60];
+       uint8_t  RESERVED3[0x60];
   __O  uint32_t IPSR[8];
-  uint8_t RESERVED4[0x60];
+       uint8_t  RESERVED4[0x60];
   __O  uint32_t IPRR[8];
-  uint8_t RESERVED5[0x60];
+       uint8_t  RESERVED5[0x60];
   __IO uint32_t IACTR[8];
-  uint8_t RESERVED6[0xE0];
-  __IO uint8_t IPRIOR[256];
-  uint8_t RESERVED7[0x810];
+       uint8_t  RESERVED6[0xE0];
+  __IO uint32_t IPRIOR[64];
+       uint8_t  RESERVED7[0x810];
   __IO uint32_t SCTLR;
-}PFIC_Type;
+} PFIC_Type;
 
-/* memory mapped structure for SysTick */
+/* PFIC peripheral access macro                                               */
+#define PFIC                          ((PFIC_Type*)PFIC_BASE)
+
+/* Bit definitions for PFIC Configuration Register (CFGR)                     */
+#define PFIC_CFGR_HWSTKCTRL           0x00000001UL
+#define PFIC_CFGR_NESTCTRL            0x00000002UL
+#define PFIC_CFGR_NMISET              0x00000004UL
+#define PFIC_CFGR_NMIRESET            0x00000008UL
+#define PFIC_CFGR_EXCSET              0x00000010UL
+#define PFIC_CFGR_EXCRESET            0x00000020UL
+#define PFIC_CFGR_PFICRESET           0x00000040UL
+#define PFIC_CFGR_SYSRESET            0x00000080UL
+#define PFIC_CFGR_KEYCODE_KEY1        0xFA050000UL
+#define PFIC_CFGR_KEYCODE_KEY2        0xBCAF0000UL
+#define PFIC_CFGR_KEYCODE_KEY3        0xBEEF0000UL
+
+/* Bit definitions for PFIC System Control Register (SCTLR)                   */
+#define PFIC_SCTLR_SLEEPONEXIT        0x00000002UL
+#define PFIC_SCTLR_SLEEPDEEP          0x00000004UL
+#define PFIC_SCTLR_WFITOWFE           0x00000008UL
+#define PFIC_SCTLR_SEVONPEND          0x00000010UL
+#define PFIC_SCTLR_SETEVENT           0x00000020UL
+
+/* Bit definitions for PFIC Interrupt Priority Threshold Register (ITHRESDR)  */
+#define PFIC_ITHRESDR_THRESHOLD_LOW   0x00000010UL
+
+/* Interrupt number from IRQn                                                 */
+#define PFIC_IRQn_NUM(IRQn)           ((uint32_t)(IRQn) & 0x1FUL)
+
+/* Interrupt register offset from IRQn                                        */
+#define PFIC_IRQn_REG(IRQn)           ((uint32_t)(IRQn) >> 5)
+
+/*!****************************************************************************
+ * @brief
+ * Enable Interrupt
+ *
+ * @param[in] IRQn        Interrupt Number
+ * @date  30.04.2020
+ * @date  26.02.2023  Code Style
+ ******************************************************************************/
+RV_STATIC_INLINE void PFIC_EnableIRQ(IRQn_Type IRQn)
+{
+  PFIC->IENR[PFIC_IRQn_REG(IRQn)] = 1UL << PFIC_IRQn_NUM(IRQn);
+}
+
+/*!****************************************************************************
+ * @brief
+ * Disable Interrupt
+ *
+ * @param[in] IRQn        Interrupt Number
+ * @date  30.04.2020
+ * @date  26.02.2023  Code Style
+ ******************************************************************************/
+RV_STATIC_INLINE void PFIC_DisableIRQ(IRQn_Type IRQn)
+{
+  /* Temporarily set to mininum threshold to prevent inter-
+   * rupt from firing                                     */
+  register uint32_t ulThrBkp = PFIC->ITHRESDR;
+  PFIC->ITHRESDR = PFIC_ITHRESDR_THRESHOLD_LOW;
+
+  /* Reset enable-flag                                    */
+  PFIC->IRER[PFIC_IRQn_REG(IRQn)] = 1UL << PFIC_IRQn_NUM(IRQn);
+
+  /* Restore priority threshold                           */
+  PFIC->ITHRESDR = ulThrBkp;
+}
+
+/*!****************************************************************************
+ * @brief
+ * Get Interrupt Enable State
+ *
+ * @param[in] IRQn        Interrupt Number
+ * @return  (uint32_t)  Interrupt Enable State
+ * @retval  0           Interrupt is disabled
+ * @retval  1           Interrupt is enabled
+ * @date  30.04.2020
+ * @date  26.02.2023  Code Style
+ ******************************************************************************/
+RV_STATIC_INLINE uint32_t PFIC_GetStatusIRQ(IRQn_Type IRQn)
+{
+  return (PFIC->ISR[PFIC_IRQn_REG(IRQn)] & (1UL << PFIC_IRQn_NUM(IRQn))) ? 1UL : 0UL;
+}
+
+/*!****************************************************************************
+ * @brief
+ * Get Interrupt Pending State
+ *
+ * @param[in] IRQn        Interrupt Number
+ * @return  (uint32_t)  Interrupt Pending State
+ * @retval  0           Interrupt is not pending
+ * @retval  1           Interrupt is pending
+ * @date  30.04.2020
+ * @date  26.02.2023  Code Style
+ ******************************************************************************/
+RV_STATIC_INLINE uint32_t PFIC_GetPendingIRQ(IRQn_Type IRQn)
+{
+  return (PFIC->IPR[PFIC_IRQn_REG(IRQn)] & (1UL << PFIC_IRQn_NUM(IRQn))) ? 1UL : 0UL;
+}
+
+/*!****************************************************************************
+ * @brief
+ * Set Interrupt Pending State
+ *
+ * @param[in] IRQn        Interrupt Number
+ * @date  30.04.2020
+ * @date  26.02.2023  Code Style
+ ******************************************************************************/
+RV_STATIC_INLINE void PFIC_SetPendingIRQ(IRQn_Type IRQn)
+{
+  PFIC->IPSR[PFIC_IRQn_REG(IRQn)] = 1UL << PFIC_IRQn_NUM(IRQn);
+}
+
+/*!****************************************************************************
+ * @brief
+ * Clear Interrupt Pending State
+ *
+ * @param[in] IRQn        Interrupt Number
+ * @date  30.04.2020
+ * @date  26.02.2023  Code Style
+ ******************************************************************************/
+RV_STATIC_INLINE void PFIC_ClearPendingIRQ(IRQn_Type IRQn)
+{
+  PFIC->IPRR[PFIC_IRQn_REG(IRQn)] = 1UL << PFIC_IRQn_NUM(IRQn);
+}
+
+/*!****************************************************************************
+ * @brief
+ * Get Interrupt Active State
+ *
+ * @param[in] IRQn        Interrupt Number
+ * @return  (uint32_t)  Interrupt Active State
+ * @retval  0           Interrupt is not active
+ * @retval  1           Interrupt is active
+ * @date  30.04.2020
+ * @date  26.02.2023  Code Style
+ ******************************************************************************/
+RV_STATIC_INLINE uint32_t PFIC_GetActive(IRQn_Type IRQn)
+{
+  return (PFIC->IACTR[PFIC_IRQn_REG(IRQn)] & (1UL << PFIC_IRQn_NUM(IRQn))) ? 1UL : 0UL;
+}
+
+/*!****************************************************************************
+ * @brief
+ * Set Interrupt Priority
+ *
+ * @param[in] IRQn        Interrupt Number
+ * @param[in] priority    Priority value (7: pre-emption, 6-4: subpriority)
+ * @date  30.04.2020
+ * @date  26.02.2023  Code Style; 32-bit wide register access
+ ******************************************************************************/
+RV_STATIC_INLINE void PFIC_SetPriority(IRQn_Type IRQn, uint8_t priority)
+{
+  PFIC->IPRIOR[(IRQn >> 2)] = (uint32_t)priority << (IRQn & 0x3UL);
+}
+
+/*!****************************************************************************
+ * @brief
+ * Set Vector-Table-Free (VTF) Interrupt Handler
+ *
+ * @note All ISR addresses are relative to a common base address specified
+ * in FIBADDRR.
+ *
+ * @note Address bits 23:20 of the ISR must be set to 0.
+ *
+ * @param[in] channel     VTF Interrupt Channel (0..3)
+ * @param[in] address     VTF Interrupt Handler Address
+ * @param[in] IRQn        Assigned Interrupt Number
+ * @date  30.04.2020
+ * @date  26.02.2023  Code Style; Argument Ordering; Function Name
+ ******************************************************************************/
+RV_STATIC_INLINE void PFIC_ConfigFastIRQ(uint8_t channel, uint32_t address, IRQn_Type IRQn)
+{
+  PFIC->FIBADDRR = address & 0xF0000000UL;
+  PFIC->FIOFADDRR[channel & 0x3UL] = ((uint32_t)IRQn << 24) | (address & 0x000FFFFFUL);
+}
+
+/*!****************************************************************************
+ * @brief
+ * Initiate System Reset
+ *
+ * @date  30.04.2020
+ * @date  26.02.2023  Coding Style
+ ******************************************************************************/
+RV_STATIC_INLINE void PFIC_SystemReset(void)
+{
+  PFIC->CFGR = PFIC_CFGR_KEYCODE_KEY3 | PFIC_CFGR_SYSRESET;
+}
+
+/*!****************************************************************************
+ * @brief
+ * Configure HPE (Hardware Prologue/Epilogue) and Interrupt Nesting function
+ *
+ * @param[in] hpe         Enable or disable HPE
+ * @param[in] nest        Enable or disable interrupt nesting
+ * @date  26.02.2023
+ ******************************************************************************/
+RV_STATIC_INLINE void PFIC_Config(FunctionalState hpe, FunctionalState nest)
+{
+  PFIC->CFGR = PFIC_CFGR_KEYCODE_KEY1           | \
+    ((hpe == ENABLE) ? 0 : PFIC_CFGR_HWSTKCTRL) | \
+    ((nest == ENABLE) ? 0 : PFIC_CFGR_NESTCTRL);
+}
+
+
+/* ########################### SysTick Timer ################################ */
+/* Memory-Mapped SysTick Register File                                        */
 typedef struct
 {
   __IO uint32_t CTLR;
@@ -133,214 +353,16 @@ typedef struct
     };
     __I uint32_t CMPHR;
   };
-}SysTick_Type;
+} SysTick_Type;
 
-#define PFIC            ((PFIC_Type *) 0xE000E000)
-#define PFIC_KEY1       ((uint32_t)0xFA050000)
-#define PFIC_KEY2       ((uint32_t)0xBCAF0000)
-#define PFIC_KEY3       ((uint32_t)0xBEEF0000)
+/* SysTick access macro                                                       */
+#define SysTick                       ((SysTick_Type*)SysTick_BASE)
 
-#define SysTick         ((SysTick_Type *) 0xE000F000)
-
-
-/* ################ Programmable Fast Interrupt Controller ################## */
-/*********************************************************************
- * @fn      PFIC_EnableIRQ
- *
- * @brief   Enable Interrupt
- *
- * @param   IRQn: Interrupt Numbers
- *
- * @return  none
- */
-RV_STATIC_INLINE void PFIC_EnableIRQ(IRQn_Type IRQn){
-  PFIC->IENR[((uint32_t)(IRQn) >> 5)] = (1 << ((uint32_t)(IRQn) & 0x1F));
-}
-
-/*********************************************************************
- * @fn      PFIC_DisableIRQ
- *
- * @brief   Disable Interrupt
- *
- * @param   IRQn: Interrupt Numbers
- *
- * @return  none
- */
-RV_STATIC_INLINE void PFIC_DisableIRQ(IRQn_Type IRQn)
-{
-  uint32_t t;
-
-  t = PFIC->ITHRESDR;
-  PFIC->ITHRESDR = 0x10;
-  PFIC->IRER[((uint32_t)(IRQn) >> 5)] = (1 << ((uint32_t)(IRQn) & 0x1F));
-  PFIC->ITHRESDR = t;
-}
-
-/*********************************************************************
- * @fn      PFIC_GetStatusIRQ
- *
- * @brief   Get Interrupt Enable State
- *
- * @param   IRQn: Interrupt Numbers
- *
- * @return  1 - Interrupt Enable
- *          0 - Interrupt Disable
- */
-RV_STATIC_INLINE uint32_t PFIC_GetStatusIRQ(IRQn_Type IRQn)
-{
-  return((uint32_t) ((PFIC->ISR[(uint32_t)(IRQn) >> 5] & (1 << ((uint32_t)(IRQn) & 0x1F)))?1:0));
-}
-
-/*********************************************************************
- * @fn      PFIC_GetPendingIRQ
- *
- * @brief   Get Interrupt Pending State
- *
- * @param   IRQn: Interrupt Numbers
- *
- * @return  1 - Interrupt Pending Enable
- *          0 - Interrupt Pending Disable
- */
-RV_STATIC_INLINE uint32_t PFIC_GetPendingIRQ(IRQn_Type IRQn)
-{
-  return((uint32_t) ((PFIC->IPR[(uint32_t)(IRQn) >> 5] & (1 << ((uint32_t)(IRQn) & 0x1F)))?1:0));
-}
-
-/*********************************************************************
- * @fn      PFIC_SetPendingIRQ
- *
- * @brief   Set Interrupt Pending
- *
- * @param   IRQn: Interrupt Numbers
- *
- * @return  None
- */
-RV_STATIC_INLINE void PFIC_SetPendingIRQ(IRQn_Type IRQn)
-{
-  PFIC->IPSR[((uint32_t)(IRQn) >> 5)] = (1 << ((uint32_t)(IRQn) & 0x1F));
-}
-
-/*********************************************************************
- * @fn      PFIC_ClearPendingIRQ
- *
- * @brief   Clear Interrupt Pending
- *
- * @param   IRQn: Interrupt Numbers
- *
- * @return  None
- */
-RV_STATIC_INLINE void PFIC_ClearPendingIRQ(IRQn_Type IRQn)
-{
-  PFIC->IPRR[((uint32_t)(IRQn) >> 5)] = (1 << ((uint32_t)(IRQn) & 0x1F));
-}
-
-/*********************************************************************
- * @fn      PFIC_GetActive
- *
- * @brief   Get Interrupt Active State
- *
- * @param   IRQn: Interrupt Numbers
- *
- * @return  1 - Interrupt Active
- *          0 - Interrupt No Active
- */
-RV_STATIC_INLINE uint32_t PFIC_GetActive(IRQn_Type IRQn)
-{
-  return((uint32_t)((PFIC->IACTR[(uint32_t)(IRQn) >> 5] & (1 << ((uint32_t)(IRQn) & 0x1F)))?1:0));
-}
-
-/*********************************************************************
- * @fn      PFIC_SetPriority
- *
- * @brief   Set Interrupt Priority
- *
- * @param   IRQn - Interrupt Numbers
- *          priority -
- *              bit7 - pre-emption priority
- *              bit6~bit4 - subpriority
- * @return  None
- */
-RV_STATIC_INLINE void PFIC_SetPriority(IRQn_Type IRQn, uint8_t priority)
-{
-  PFIC->IPRIOR[(uint32_t)(IRQn)] = priority;
-}
-
-/*********************************************************************
- * @fn      PFIC_SetFastIRQ
- *
- * @brief   Set VTF Interrupt
- *
- * @param   add - VTF interrupt service function base address.
- *          IRQn -Interrupt Numbers
- *          num - VTF Interrupt Numbers
- * @return  None
- */
-RV_STATIC_INLINE void PFIC_SetFastIRQ(uint32_t addr, IRQn_Type IRQn, uint8_t num)
-{
-  if(num > 3)  return ;
-  PFIC->FIBADDRR = addr;
-  PFIC->FIOFADDRR[num] = ((uint32_t)IRQn<<24)|(addr&0xfffff);
-}
-
-/*********************************************************************
- * @fn      PFIC_SystemReset
- *
- * @brief   Initiate a system reset request
- *
- * @return  None
- */
-RV_STATIC_INLINE void PFIC_SystemReset(void)
-{
-  PFIC->CFGR = PFIC_KEY3|(1<<7);
-}
-
-/*********************************************************************
- * @fn      PFIC_HaltPushCfg
- *
- * @brief   Enable Hardware Stack
- *
- * @param   NewState - DISABLE or ENABLE
-
- * @return  None
- */
-RV_STATIC_INLINE void PFIC_HaltPushCfg(FunctionalState NewState)
-{
-  if (NewState != DISABLE)
-  {
-    PFIC->CFGR = PFIC_KEY1;
-  }
-  else{
-    PFIC->CFGR = PFIC_KEY1|(1<<0);
-  }
-}
-
-/*********************************************************************
- * @fn      PFIC_INTNestCfg
- *
- * @brief   Enable Interrupt Nesting
- *
- * @param   NewState - DISABLE or ENABLE
-
- * @return  None
- */
-RV_STATIC_INLINE void PFIC_INTNestCfg(FunctionalState NewState)
-{
-  if (NewState != DISABLE)
-  {
-    PFIC->CFGR = PFIC_KEY1;
-  }
-  else
-  {
-    PFIC->CFGR = PFIC_KEY1|(1<<1);
-  }
-}
-
-/* ########################### SysTick Timer ################################ */
 /* Bit definitions for SysTick register                                       */
 #define SYSTICK_CTLR_STE              0x00000001UL  /* Counter Enable         */
 
 /* Access functions for 8-bit write registers                                 */
-#define SYSTICK_REG_WRITE8(reg,val32) {     \
+#define SYSTICK_REG_WRITE8(reg,value) {     \
   SysTick->reg##3 = (uint8_t)(value >> 24); \
   SysTick->reg##2 = (uint8_t)(value >> 16); \
   SysTick->reg##1 = (uint8_t)(value >>  8); \
@@ -490,46 +512,58 @@ RV_STATIC_FORCE_INLINE void SysTick_SetCompare(uint64_t value)
   SysTick_SetCompareLow((uint32_t)value);
 }
 
-/* ########################## Core functions ################################ */
-/*********************************************************************
- * @fn      __NOP
+
+/* ############################ Core Functions ############################## */
+/*!****************************************************************************
+ * @brief
+ * No Operation (NOP)
  *
- * @brief   nop
- *
- * @return  none
- */
+ * @date  30.04.2020
+ ******************************************************************************/
 RV_STATIC_INLINE void __NOP()
 {
   __asm volatile ("nop");
 }
 
-/*********************************************************************
- * @fn      __WFI
+/*!****************************************************************************
+ * @brief
+ * Set Event Flag
  *
- * @brief   Wait for Interrupt
- *
- * @return  None
- */
-RV_STATIC_FORCE_INLINE void __WFI(void)
+ * @date  26.02.2023
+ ******************************************************************************/
+RV_STATIC_INLINE void __SEV()
 {
-  PFIC->SCTLR &= ~(1<<3); // wfi
-  asm volatile ("wfi");
+  PFIC->SCTLR |= PFIC_SCTLR_SETEVENT;
 }
 
-/*********************************************************************
- * @fn      __WFE
+/*!****************************************************************************
+ * @brief
+ * Wait For Interrupt (WFI)
  *
- * @brief   Wait for Events
+ * @date  30.04.2020
+ * @date  26.02.2023  Coding style
+ ******************************************************************************/
+RV_STATIC_FORCE_INLINE void __WFI(void)
+{
+  /* Instruction is executed as WFI                       */
+  PFIC->SCTLR &= ~PFIC_SCTLR_WFITOWFE;
+  __asm volatile ("wfi");
+}
+
+/*!****************************************************************************
+ * @brief
+ * Wait For Event (WFE)
  *
- * @return  None
- */
+ * @date  30.04.2020
+ * @date  26.02.2023  Removed internal __sev
+ ******************************************************************************/
 RV_STATIC_FORCE_INLINE void __WFE(void)
 {
-  PFIC->SCTLR |= (1<<3)|(1<<5);   // (wfi->wfe)+(__sev)
-  asm volatile ("wfi");
-  PFIC->SCTLR |= (1<<3);
-  asm volatile ("wfi");
+  /* Instruction is executed as WFE                       */
+  PFIC->SCTLR |= PFIC_SCTLR_WFITOWFE;
+  __asm volatile ("wfi");
 }
+
 
 /* ###################### Machine Register Access ########################### */
 /*********************************************************************
@@ -1055,7 +1089,7 @@ RV_STATIC_FORCE_INLINE uint32_t __get_SP(void)
     return (result);
 }
 
-#endif/* __CORE_RISCV_H__ */
+#endif /* __CORE_RISCV_H__ */
 
 
 
