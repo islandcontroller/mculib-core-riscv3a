@@ -79,7 +79,7 @@ _csr_init:
   la    a0,   _vector_base            /* Set trap vector address              */
   ori   a0,   a0,   1                 /* Vectored mode                        */
   csrw  mtvec,  a0
-  li    t0,   0x88                    /* Enable interrupts                    */
+  li    t0,   0x1888                  /* M privilege, machine int. enabled    */
   csrw  mstatus,  t0
 
 /* Jump to main() function                                                    */
