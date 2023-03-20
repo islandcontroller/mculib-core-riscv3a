@@ -22,11 +22,7 @@
 #define __RISC_V3A                    1U
 
 /* Volatile/Const Access flag definitions                                     */
-#ifdef __cplusplus
-  #define __I                         volatile
-#else
-  #define __I                         volatile const
-#endif
+#define __I                           volatile const
 #define __O                           volatile
 #define __IO                          volatile
 
