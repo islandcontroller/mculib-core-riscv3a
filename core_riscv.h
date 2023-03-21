@@ -259,10 +259,17 @@ RV_STATIC_INLINE uint32_t PFIC_GetActive(IRQn_Type IRQn)
  * @param[in] priority    Priority value (7: pre-emption, 6-4: subpriority)
  * @date  30.04.2020
  * @date  26.02.2023  Code Style; 32-bit wide register access
+ * @date  21.03.2023  Fixed assignment overriding adjacent IRQn priorities; Ad-
+ *                    ded priority value bitmask
  ******************************************************************************/
 RV_STATIC_INLINE void PFIC_SetPriority(IRQn_Type IRQn, uint8_t priority)
 {
-  PFIC->IPRIOR[(IRQn >> 2)] = (uint32_t)priority << (IRQn & 0x3UL);
+  uint32_t ulTmp = PFIC->IPRIOR[(IRQn >> 2)];
+
+  ulTmp &= ~(0xFFUL << (IRQn & 0x3UL));
+  ulTmp |= (uint32_t)(priority & 0xF0UL) << (IRQn & 0x3UL);
+
+  PFIC->IPRIOR[(IRQn >> 2)] = ulTmp;
 }
 
 /*!****************************************************************************
