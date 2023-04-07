@@ -462,6 +462,20 @@ RV_STATIC_FORCE_INLINE uint32_t SysTick_GetValueLow(void)
 
 /*!****************************************************************************
  * @brief
+ * Get SysTick counter value, low word
+ *
+ * (Alias function for compatibility between RISC-V2 and RISC-V3 cores)
+ *
+ * @return  (uint32_t)  Counter value, low word
+ * @date  07.04.2023
+ ******************************************************************************/
+RV_STATIC_FORCE_INLINE uint32_t SysTick_GetValue(void)
+{
+  return SysTick_GetValueLow();
+}
+
+/*!****************************************************************************
+ * @brief
  * Get SysTick counter value, high word
  *
  * @return  (uint32_t)  Counter value, low word
