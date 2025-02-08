@@ -89,11 +89,11 @@ typedef struct {
   __I  uint32_t ISR[8];
   __I  uint32_t IPR[8];
   __IO uint32_t ITHRESDR;
-  __IO uint32_t FIBADDRR;
+  __IO uint32_t VTFBADDR;
   __IO uint32_t CFGR;
   __I  uint32_t GISR;
        uint8_t  RESERVED0[0x10];
-  __IO uint32_t FIOFADDRR[4];
+  __IO uint32_t VTFADDRR[4];
        uint8_t  RESERVED1[0x90];
   __O  uint32_t IENR[8];
        uint8_t  RESERVED2[0x60];
@@ -282,7 +282,7 @@ RV_STATIC_INLINE void PFIC_SetPriority(IRQn_Type IRQn, uint8_t priority)
  * Set Vector-Table-Free (VTF) Interrupt Handler
  *
  * @note All ISR addresses are relative to a common base address specified
- * in FIBADDRR.
+ * in VTFBADDR.
  *
  * @note Address bits 23:20 of the ISR must be set to 0.
  *
@@ -294,8 +294,8 @@ RV_STATIC_INLINE void PFIC_SetPriority(IRQn_Type IRQn, uint8_t priority)
  ******************************************************************************/
 RV_STATIC_INLINE void PFIC_ConfigFastIRQ(uint8_t channel, uint32_t address, IRQn_Type IRQn)
 {
-  PFIC->FIBADDRR = address & 0xF0000000UL;
-  PFIC->FIOFADDRR[channel & 0x3UL] = ((uint32_t)IRQn << 24) | (address & 0x000FFFFFUL);
+  PFIC->VTFBADDR = address & 0xF0000000UL;
+  PFIC->VTFADDRR[channel & 0x3UL] = ((uint32_t)IRQn << 24) | (address & 0x000FFFFFUL);
 }
 
 /*!****************************************************************************
@@ -321,8 +321,8 @@ RV_STATIC_INLINE void PFIC_SystemReset(void)
 RV_STATIC_INLINE void PFIC_Config(FunctionalState hpe, FunctionalState nest)
 {
   PFIC->CFGR = PFIC_CFGR_KEYCODE_KEY1           | \
-    ((hpe == ENABLE) ? 0 : PFIC_CFGR_HWSTKCTRL) | \
-    ((nest == ENABLE) ? 0 : PFIC_CFGR_NESTCTRL);
+    ((hpe != DISABLE) ? 0 : PFIC_CFGR_HWSTKCTRL) | \
+    ((nest != DISABLE) ? 0 : PFIC_CFGR_NESTCTRL);
 }
 
 
